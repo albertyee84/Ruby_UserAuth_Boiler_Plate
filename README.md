@@ -105,3 +105,36 @@ module.exports = {
 end
 
 ```
+
+- run 'rails g controller api/users' to create controller "Users" under the api folder
+- add the following to the routes.rb file
+
+``` ruby
+     root to: 'root#root'
+
+    namespace :api, defaults: { format: :json } do
+        resources :users, only: [ :index, :create ]
+        resource :session, only: [ :create, :destroy ]
+    end
+```
+
+- in the users_controller.rb file add:
+``` ruby
+    class Api::UsersController < ApplicationController
+
+  def create
+    @user = User.new(user_params)
+    if @user.save
+      login(@user)
+      render :show
+    else
+      render json: @user.errors.full_messages, status: 401
+    end
+  end
+
+  def user_params
+    params.require(:user).permit(:username, :password)
+  end
+end
+
+```
