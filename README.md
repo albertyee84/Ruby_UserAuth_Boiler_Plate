@@ -138,3 +138,92 @@ end
 end
 
 ```
+- in app -> views -> api -> users add all the jbuilder files to your new project
+- run rails g controller api/sessions
+- add the following to the sessions controller:
+``` ruby
+  class Api::SessionsController < ApplicationController
+
+  def create
+    username = params[:user][:username]
+    password = params[:user][:password]
+ 
+    @user = User.find_by_creds(username, password)
+    if @user
+      login(@user)
+      render 'api/users/show'
+    else
+      render json: ['Invalid username or password'], status: 401
+      # render json: @user.errors.full_messages, status: 401
+    end
+  end
+
+  def destroy
+    if logged_in?
+      logout
+      render json: {}
+    else
+      render json: ['Invalid username or password'], status: 404
+    end
+  end
+
+end
+
+```
+
+- add the following to the application controller
+``` ruby
+  class ApplicationController < ActionController::Base
+
+  helper_method :current_user, :logged_in?
+
+  def current_user
+    @user ||= User.find_by(session_token: session[:session_token])
+    @user
+  end
+
+  def login(user)
+    @user = user
+    session[:session_token] = user.session_token
+  end
+
+  def logout
+    session[:session_token] = nil
+    current_user.reset_token
+  end
+
+  def logged_in?
+    !!current_user
+  end
+
+  def require_login
+    redirect_to new_session_url unless logged_in?
+  end
+
+end
+
+```
+
+- run rails g controller root
+- add the following the root controller
+``` ruby
+  class RootController < ApplicationController
+    def root
+        render :root
+    end
+  end
+
+```
+
+- add root.html.erb in views -> root and add the following.  This will bootstrap the current user to the window
+``` ruby
+  <% if logged_in? %>
+    <script type="text/javascript">
+        window.currentUser = <%= render(
+            "api/users/user.json.jbuilder",
+            user: current_user
+        ).html_safe %>
+    </script>
+<% end %>
+<main id="root"></main>
+```
